@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Movimiento Parabólico</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Color de fondo suave */
+            color: #334155; /* Color de texto principal */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 1rem;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 1.5rem;
+            border-radius: 1rem; /* Bordes más redondeados */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); /* Sombra más pronunciada */
+            width: 100%;
+            max-width: 900px; /* Ancho máximo del contenedor */
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem; /* Espacio entre elementos */
+        }
+        canvas {
+            border: 2px solid #cbd5e1; /* Borde del canvas más sutil */
+            border-radius: 0.75rem; /* Bordes redondeados para el canvas */
+            /* Se elimina el gradiente de fondo para que la cuadrícula sea más visible */
+            background-color: #f8fafc; /* Un fondo blanco o muy claro es mejor para la cuadrícula */
+            width: 100%;
+            height: auto; /* Altura automática para mantener la proporción */
+            aspect-ratio: 16 / 9; /* Proporción común para visualizaciones */
+            max-height: 450px; /* Altura máxima para el canvas */
+        }
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Columnas adaptables */
+            gap: 1rem;
+        }
+        .control-group {
+            background-color: #f8fafc; 
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #e2e8f0;
+        }
+        .control-group h3 {
+            margin-top: 0;
+            margin-bottom: 0.75rem;
+            color: #0ea5e9; 
+            font-weight: 600;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.25rem;
+            font-size: 0.875rem; 
+            color: #475569;
+        }
+        input[type="range"], input[type="number"] {
+            width: 100%;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            border: 1px solid #cbd5e1;
+            box-sizing: border-box;
+            accent-color: #0ea5e9; 
+        }
+        input[type="number"] {
+            -moz-appearance: textfield; 
+        }
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none; 
+            margin: 0;
+        }
+        .button-group {
+            display: flex;
+            gap: 0.75rem; 
+            flex-wrap: wrap; 
+        }
+        button {
+            background-image: linear-gradient(to right, #0ea5e9, #2563eb); 
+            color: white;
+            padding: 0.6rem 1.2rem; 
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        button:hover {
+            transform: translateY(-2px); 
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        button:active {
+            transform: translateY(0px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            color: #334155;
+            cursor: pointer;
+        }
+        .checkbox-group input[type="checkbox"] {
+            accent-color: #0ea5e9;
+            width: 1.1rem;
+            height: 1.1rem;
+        }
+        .info-display {
+            background-color: #f1f5f9; 
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+        .info-display p {
+            margin: 0.3rem 0;
+        }
+        .info-display strong {
+            color: #1e40af; 
+        }
+        .footer {
+            text-align: center;
+            margin-top: 2rem;
+            padding: 1rem;
+            font-size: 0.875rem;
+            color: #64748b; 
+            width: 100%;
+            background-color: #e2e8f0; 
+            border-top: 1px solid #cbd5e1;
+            position: sticky; 
+            bottom: 0;
+        }
+        button .fas {
+            margin-right: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="text-center mb-6">
+            <h1 class="text-3xl font-bold text-sky-600">🚀 Simulador de Movimiento Parabólico 🎯</h1>
+            <p class="text-slate-600 mt-2">Experimenta y visualiza las leyes de la física en acción.</p>
+        </header>
+
+        <canvas id="projectileCanvas"></canvas>
+
+        <div class="controls-grid">
+            <div class="control-group">
+                <h3><i class="fas fa-sliders-h"></i> Parámetros Iniciales</h3>
+                <div>
+                    <label for="initialVelocity">Velocidad Inicial (m/s): <span id="velocityValue">45</span></label>
+                    <input type="range" id="initialVelocity" min="5" max="100" value="45" step="1">
+                </div>
+                <div class="mt-3">
+                    <label for="launchAngle">Ángulo de Lanzamiento (°): <span id="angleValue">45</span></label>
+                    <input type="range" id="launchAngle" min="1" max="89" value="45" step="1">
+                </div>
+                 <div class="mt-3">
+                    <label for="gravity">Gravedad (m/s²): <span id="gravityValue">9.8</span></label>
+                    <input type="range" id="gravity" min="1" max="20" value="9.8" step="0.1">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3><i class="fas fa-eye"></i> Opciones de Visualización</h3>
+                <div class="checkbox-group space-y-2">
+                    <label><input type="checkbox" id="showCoords" checked> <span>📍 Coordenadas (x, y)</span></label>
+                    <label><input type="checkbox" id="showCoordLines" checked> <span>📏 Líneas Guía Coordenadas</span></label> 
+                    <label><input type="checkbox" id="showGrid" checked> <span><i class="fas fa-th"></i> Mostrar Cuadrícula</span></label>
+                    <label><input type="checkbox" id="showVelocityVectors" checked> <span><i class="fas fa-long-arrow-alt-right text-blue-500"></i><i class="fas fa-long-arrow-alt-up text-green-500 ml-1"></i> Vectores Velocidad (Vx, Vy)</span></label>
+                    <label><input type="checkbox" id="showResultantVector" checked> <span><i class="fas fa-arrow-right text-red-500" style="transform: rotate(-45deg);"></i> Vector Velocidad Resultante</span></label>
+                    <label><input type="checkbox" id="showMaxHeight"> <span><i class="fas fa-arrows-alt-v text-purple-500"></i> Altura Máxima</span></label>
+                    <label><input type="checkbox" id="showMaxRange"> <span><i class="fas fa-arrows-alt-h text-orange-500"></i> Alcance Máximo</span></label>
+                    <label><input type="checkbox" id="showTotalTime"> <span>⏱️ Tiempo Total de Vuelo</span></label>
+                    <label><input type="checkbox" id="showPath"> <span>〰️ Mostrar Trayectoria</span></label>
+                </div>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button id="startButton"><i class="fas fa-play"></i> Iniciar</button>
+            <button id="pauseButton"><i class="fas fa-pause"></i> Pausar</button>
+            <button id="resetButton"><i class="fas fa-redo"></i> Reiniciar</button>
+        </div>
+
+        <div class="info-display">
+            <h3 class="text-lg font-semibold text-sky-700 mb-2"><i class="fas fa-chart-line"></i> Resultados del Lanzamiento</h3>
+            <p>Altura Máxima (H<sub>max</sub>): <strong id="maxHeightDisplay">-</strong> m</p>
+            <p>Alcance Horizontal (R<sub>max</sub>): <strong id="maxRangeDisplay">-</strong> m</p>
+            <p>Tiempo Total de Vuelo (T<sub>total</sub>): <strong id="totalTimeDisplay">-</strong> s</p>
+            <p class="mt-2">Coordenadas Actuales: (x: <strong id="currentXDisplay">-</strong> m, y: <strong id="currentYDisplay">-</strong> m)</p>
+            <p>Tiempo Transcurrido: <strong id="currentTimeDisplay">-</strong> s</p>
+        </div>
+        
+        <div class="control-group mt-4">
+            <h3><i class="fas fa-book-open"></i> Fórmulas Clave (MathJax)</h3>
+            <p>Posición en y: \(y(t) = v_{0y}t - \frac{1}{2}gt^2\)</p>
+            <p>Posición en x: \(x(t) = v_{0x}t\)</p>
+            <p>Altura Máxima: \(H_{max} = \frac{(v_{0y})^2}{2g}\)</p>
+            <p>Alcance Máximo: \(R_{max} = \frac{v_0^2 \sin(2\theta)}{g}\)</p>
+        </div>
+    </div>
+
+    <footer class="footer">
+        Autor: MSc. Néstor Fabio Montoya Palacios
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('projectileCanvas');
+            const ctx = canvas.getContext('2d');
+
+            const initialVelocitySlider = document.getElementById('initialVelocity');
+            const launchAngleSlider = document.getElementById('launchAngle');
+            const gravitySlider = document.getElementById('gravity');
+            const velocityValueSpan = document.getElementById('velocityValue');
+            const angleValueSpan = document.getElementById('angleValue');
+            const gravityValueSpan = document.getElementById('gravityValue');
+
+            const startButton = document.getElementById('startButton');
+            const pauseButton = document.getElementById('pauseButton');
+            const resetButton = document.getElementById('resetButton');
+
+            const showCoordsCheckbox = document.getElementById('showCoords');
+            const showCoordLinesCheckbox = document.getElementById('showCoordLines'); 
+            const showGridCheckbox = document.getElementById('showGrid'); // Checkbox para la cuadrícula
+            const showVelocityVectorsCheckbox = document.getElementById('showVelocityVectors');
+            const showResultantVectorCheckbox = document.getElementById('showResultantVector');
+            const showMaxHeightCheckbox = document.getElementById('showMaxHeight');
+            const showMaxRangeCheckbox = document.getElementById('showMaxRange');
+            const showTotalTimeCheckbox = document.getElementById('showTotalTime');
+            const showPathCheckbox = document.getElementById('showPath');
+
+            const maxHeightDisplay = document.getElementById('maxHeightDisplay');
+            const maxRangeDisplay = document.getElementById('maxRangeDisplay');
+            const totalTimeDisplay = document.getElementById('totalTimeDisplay');
+            const currentXDisplay = document.getElementById('currentXDisplay');
+            const currentYDisplay = document.getElementById('currentYDisplay');
+            const currentTimeDisplay = document.getElementById('currentTimeDisplay');
+
+            let v0 = parseFloat(initialVelocitySlider.value); 
+            let angleDegrees = parseFloat(launchAngleSlider.value); 
+            let angleRadians = angleDegrees * Math.PI / 180; 
+            let g = parseFloat(gravitySlider.value); 
+
+            let v0x = v0 * Math.cos(angleRadians); 
+            let v0y = v0 * Math.sin(angleRadians); 
+
+            let x = 0; 
+            let y = 0; 
+            let t = 0; 
+            let dt = 0.02; 
+
+            let animationFrameId;
+            let isRunning = false; 
+            let isPaused = false; 
+            let pathPoints = []; 
+
+            let scale = 10; 
+            const AXIS_MARGIN = 30; // Margen para los ejes y etiquetas
+
+            function resizeCanvas() {
+                const containerWidth = canvas.parentElement.clientWidth;
+                canvas.width = containerWidth;
+                canvas.height = Math.min(450, containerWidth * 0.6); 
+
+                const theoreticalRMax = (v0 * v0 * Math.sin(2 * angleRadians)) / g;
+                const theoreticalHMax = (v0y * v0y) / (2 * g);
+                
+                // Ajustar escala para que la trayectoria quepa, considerando el margen de los ejes
+                const drawableWidth = canvas.width - AXIS_MARGIN - 10; // 10px extra de padding
+                const drawableHeight = canvas.height - AXIS_MARGIN - 10;
+
+                let scaleX = scale;
+                let scaleY = scale;
+
+                if (theoreticalRMax > 0 && isFinite(theoreticalRMax)) { 
+                    scaleX = drawableWidth / theoreticalRMax;
+                } else {
+                    scaleX = Math.max(1, drawableWidth / 200); 
+                }
+                if (theoreticalHMax > 0 && isFinite(theoreticalHMax)) { 
+                     scaleY = drawableHeight / theoreticalHMax;
+                } else {
+                    scaleY = Math.max(1, drawableHeight / 100);
+                }
+                
+                // Usar la escala más restrictiva para que todo quepa y mantener proporción (o no, según se prefiera)
+                // Por ahora, priorizamos que quepa. Podríamos usar Math.min(scaleX, scaleY) si quisiéramos escala uniforme.
+                // Para este simulador, escalas X e Y independientes pueden ser aceptables si la trayectoria es muy ancha o muy alta.
+                // No obstante, para una representación fiel, una escala única es mejor.
+                scale = Math.min(scaleX, scaleY);
+
+
+                if (scale <=0 || !isFinite(scale)) scale = Math.max(1, Math.min(drawableWidth / 200, drawableHeight / 100));
+
+                draw(); 
+            }
+            
+            window.addEventListener('resize', resizeCanvas);
+
+            function getNiceStep(rangeInPixels, unitScale, minPixelsPerTick = 50) {
+                if (rangeInPixels <= 0 || unitScale <= 0 || !isFinite(rangeInPixels) || !isFinite(unitScale)) return 10;
+
+                const maxPossibleDataValue = rangeInPixels / unitScale; 
+                const targetTicks = Math.max(1, Math.floor(rangeInPixels / minPixelsPerTick)); 
+                
+                if (targetTicks === 0 || maxPossibleDataValue === 0 || !isFinite(maxPossibleDataValue)) return Math.max(1, maxPossibleDataValue || 10);
+
+
+                let interval = Math.pow(10, Math.floor(Math.log10(maxPossibleDataValue / targetTicks)));
+                const multipliers = [1, 2, 2.5, 5, 10]; 
+
+                for (const m of multipliers) {
+                    const numTicksWithM = maxPossibleDataValue / (interval * m);
+                    if (numTicksWithM < targetTicks * 1.5 && numTicksWithM > targetTicks * 0.5 ) { 
+                        interval *= m;
+                        break;
+                    }
+                }
+                if (multipliers.indexOf(interval / Math.pow(10, Math.floor(Math.log10(maxPossibleDataValue / targetTicks)))) === -1) {
+                    if ((maxPossibleDataValue / interval) > targetTicks * 2 && interval > 0.01) { 
+                        interval = Math.pow(10, Math.floor(Math.log10(maxPossibleDataValue / targetTicks)) +1 );
+                         for (const m of multipliers.reverse()) { 
+                            if ((maxPossibleDataValue / (interval * m)) < targetTicks * 1.5) {
+                                interval *=m;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (interval * unitScale < 5 && interval < 1 && interval !== 0) interval = Math.max(interval, 0.1);
+                if (interval * unitScale < 1 && interval < 0.1 && interval !== 0) interval = Math.max(interval, 0.01);
+
+                return Math.max(0.01, interval); 
+            }
+
+
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                const groundLevelCanvas = canvas.height - AXIS_MARGIN; 
+                const originXCanvas = AXIS_MARGIN; 
+                const originYCanvas = groundLevelCanvas; 
+
+                // --- DIBUJAR CUADRÍCULA Y EJES (antes de transformar el contexto para la simulación) ---
+                ctx.lineWidth = 1;
+                ctx.font = '10px Arial';
+                ctx.fillStyle = '#4a5568'; // Color para etiquetas de ejes
+                ctx.strokeStyle = '#d1d5db'; // Color claro para la cuadrícula
+
+                // Cuadrícula y etiquetas para el eje X
+                const visibleWidthSimUnits = (canvas.width - originXCanvas) / scale;
+                let xStepUnits = getNiceStep(canvas.width - originXCanvas, scale, 60); 
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                if (xStepUnits > 0 && isFinite(xStepUnits)) {
+                    for (let i = 0; ; i += xStepUnits) {
+                        const valInSimUnits = i; 
+                        const xPosCanvas = originXCanvas + valInSimUnits * scale;
+                        if (xPosCanvas > canvas.width - 5) break; 
+                        
+                        if (showGridCheckbox.checked && valInSimUnits > 0) { // No dibujar línea de grid en el propio eje Y
+                            ctx.beginPath();
+                            ctx.moveTo(xPosCanvas, 0);
+                            ctx.lineTo(xPosCanvas, originYCanvas);
+                            ctx.stroke();
+                        }
+                        if (valInSimUnits > 0) { // No dibujar etiqueta "0m" aquí, se dibuja en el origen
+                           ctx.fillText(`${valInSimUnits.toFixed(valInSimUnits < 1 && valInSimUnits > 0 ? (xStepUnits < 0.1 ? 2:1) : 0)}m`, xPosCanvas, originYCanvas + 5);
+                        }
+                        if (valInSimUnits > visibleWidthSimUnits + xStepUnits ) break; 
+                    }
+                }
+
+                // Cuadrícula y etiquetas para el eje Y
+                const visibleHeightSimUnits = originYCanvas / scale;
+                let yStepUnits = getNiceStep(originYCanvas - 10, scale, 40); // -10 para no llegar al borde
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
+                if (yStepUnits > 0 && isFinite(yStepUnits)) {
+                    for (let i = 0; ; i += yStepUnits) {
+                        const valInSimUnits = i; 
+                        const yPosCanvas = originYCanvas - valInSimUnits * scale;
+                        if (yPosCanvas < 5) break; 
+                        
+                        if (showGridCheckbox.checked && valInSimUnits > 0) { // No dibujar línea de grid en el propio eje X
+                            ctx.beginPath();
+                            ctx.moveTo(originXCanvas, yPosCanvas);
+                            ctx.lineTo(canvas.width, yPosCanvas);
+                            ctx.stroke();
+                        }
+                        if (valInSimUnits > 0) { // No dibujar etiqueta "0m" aquí
+                           ctx.fillText(`${valInSimUnits.toFixed(valInSimUnits < 1 && valInSimUnits > 0 ? (yStepUnits < 0.1 ? 2:1) : 0)}m`, originXCanvas - 5, yPosCanvas);
+                        }
+                        if (valInSimUnits > visibleHeightSimUnits + yStepUnits) break;
+                    }
+                }
+                
+                // Dibujar Ejes X e Y más gruesos y en negro
+                ctx.strokeStyle = '#000000'; // Negro
+                ctx.lineWidth = 2; // Más grueso
+
+                // Eje Y
+                ctx.beginPath();
+                ctx.moveTo(originXCanvas, 0);
+                ctx.lineTo(originXCanvas, originYCanvas);
+                ctx.stroke();
+                
+                // Eje X (reemplaza la línea de "suelo" anterior)
+                ctx.beginPath();
+                ctx.moveTo(originXCanvas, originYCanvas);
+                ctx.lineTo(canvas.width, originYCanvas);
+                ctx.stroke();
+
+                // Etiqueta "0" en la intersección de los ejes
+                ctx.fillStyle = '#000000'; // Negro para el "0"
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText("0", originXCanvas - 10, originYCanvas + 10); 
+
+
+                // --- FIN DIBUJO CUADRÍCULA Y EJES ---
+
+
+                // Transformaciones para el sistema de coordenadas de la simulación
+                ctx.save();
+                ctx.translate(originXCanvas, originYCanvas); 
+                ctx.scale(1, -1); // Invertir eje Y para la simulación
+
+                // Dibujar trayectoria
+                if (showPathCheckbox.checked && pathPoints.length > 1) {
+                    ctx.beginPath();
+                    ctx.moveTo(pathPoints[0].x * scale, pathPoints[0].y * scale);
+                    for (let k = 1; k < pathPoints.length; k++) {
+                        ctx.lineTo(pathPoints[k].x * scale, pathPoints[k].y * scale);
+                    }
+                    ctx.strokeStyle = 'rgba(0, 0, 255, 0.5)'; 
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+
+                // Dibujar líneas guía de coordenadas
+                if (showCoordLinesCheckbox.checked && (isRunning || isPaused || t > 0)) { 
+                    const projectilePxX = x * scale;
+                    const projectilePxY = y * scale;
+
+                    ctx.beginPath();
+                    ctx.setLineDash([2, 3]); 
+                    ctx.strokeStyle = 'rgba(100, 100, 100, 0.6)'; 
+                    ctx.lineWidth = 1;
+                    ctx.moveTo(projectilePxX, projectilePxY);
+                    ctx.lineTo(projectilePxX, 0); 
+                    ctx.moveTo(projectilePxX, projectilePxY);
+                    ctx.lineTo(0, projectilePxY); 
+                    ctx.stroke();
+                    ctx.setLineDash([]); 
+                }
+
+                // Dibujar proyectil
+                const projectileRadius = 5; 
+                ctx.beginPath();
+                ctx.arc(x * scale, y * scale, projectileRadius, 0, Math.PI * 2);
+                ctx.fillStyle = '#ef4444'; 
+                ctx.fill();
+                ctx.strokeStyle = '#b91c1c'; 
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                // Dibujar vectores
+                let vx_current = v0x; 
+                let vy_current = v0y - g * t; 
+                const vectorDrawFactor = 2; 
+                                           
+                if (showVelocityVectorsCheckbox.checked) {
+                    drawArrow(x * scale, y * scale, x * scale + vx_current * vectorDrawFactor, y * scale, '#0ea5e9', 'Vx'); 
+                    drawArrow(x * scale, y * scale, x * scale, y * scale + vy_current * vectorDrawFactor, '#10b981', 'Vy'); 
+                }
+                if (showResultantVectorCheckbox.checked) {
+                    drawArrow(x * scale, y * scale, x * scale + vx_current * vectorDrawFactor, y * scale + vy_current * vectorDrawFactor, '#f43f5e', 'V'); 
+                }
+
+                // Mostrar texto de coordenadas junto al proyectil
+                if (showCoordsCheckbox.checked) {
+                    ctx.fillStyle = '#1e293b'; 
+                    ctx.font = '12px Arial';
+                    ctx.save(); 
+                    ctx.scale(1, -1); 
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText(`(${x.toFixed(1)}, ${y.toFixed(1)})`, x * scale + 10, -(y * scale - 10) );
+                    ctx.restore(); 
+                }
+                
+                // Mostrar altura máxima y alcance máximo teóricos
+                const Hmax_calc_draw = (v0y * v0y) / (2 * g); 
+                const Rmax_calc_draw = (v0 * v0 * Math.sin(2 * angleRadians)) / g; 
+
+                if (showMaxHeightCheckbox.checked && isFinite(Hmax_calc_draw) && Hmax_calc_draw > 0) { 
+                    ctx.beginPath();
+                    ctx.moveTo(xAtHmax * scale, 0); 
+                    ctx.lineTo(xAtHmax * scale, Hmax_calc_draw * scale);
+                    ctx.strokeStyle = 'rgba(128, 0, 128, 0.7)'; 
+                    ctx.setLineDash([5, 5]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.save();
+                    ctx.scale(1,-1);
+                    ctx.fillStyle = 'purple';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(`Hmax: ${Hmax_calc_draw.toFixed(1)}m`, xAtHmax * scale + 5, -(Hmax_calc_draw * scale / 2));
+                    ctx.restore();
+                }
+
+                if (showMaxRangeCheckbox.checked && isFinite(Rmax_calc_draw) && Rmax_calc_draw > 0) { 
+                    ctx.beginPath();
+                    const rangeLineYOffset = -5 * (1/Math.max(0.1,scale)); 
+                    ctx.moveTo(0, rangeLineYOffset ); 
+                    ctx.lineTo(Rmax_calc_draw * scale, rangeLineYOffset );
+                    ctx.strokeStyle = 'rgba(255, 165, 0, 0.7)'; 
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.save();
+                    ctx.scale(1,-1);
+                    ctx.fillStyle = 'orange';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`Rmax: ${Rmax_calc_draw.toFixed(1)}m`, Rmax_calc_draw * scale / 2, -rangeLineYOffset + 15 * (1/Math.max(0.1,scale)) ); 
+                    ctx.restore();
+                }
+
+                ctx.restore(); // Restaurar el estado del contexto (sin las transformaciones de la simulación)
+                updateInfoDisplay();
+            }
+
+            function drawArrow(fromX, fromY, toX, toY, color, label) {
+                const headLength = Math.max(5, 8 * Math.min(1, (scale)/10)); 
+                const dx = toX - fromX;
+                const dy = toY - fromY;
+                const angleArrow = Math.atan2(dy, dx); 
+                
+                ctx.strokeStyle = color;
+                ctx.fillStyle = color;
+                ctx.lineWidth = 2;
+
+                ctx.beginPath();
+                ctx.moveTo(fromX, fromY);
+                ctx.lineTo(toX, toY);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(toX, toY);
+                ctx.lineTo(toX - headLength * Math.cos(angleArrow - Math.PI / 6), toY - headLength * Math.sin(angleArrow - Math.PI / 6));
+                ctx.lineTo(toX - headLength * Math.cos(angleArrow + Math.PI / 6), toY - headLength * Math.sin(angleArrow + Math.PI / 6));
+                ctx.closePath();
+                ctx.fill();
+
+                if (label) {
+                    ctx.save();
+                    ctx.translate(toX, toY); 
+                    ctx.scale(1, -1); 
+                    ctx.fillStyle = color;
+                    ctx.font = `${Math.max(10, 12 * Math.min(1, (scale)/10))}px Arial`; 
+                    let textOffsetX = 5;
+                    let textOffsetY = 5;
+                    
+                    if (Math.abs(dx) > Math.abs(dy)) { 
+                        textOffsetY = dy > 0 ? 15 : -5; 
+                        textOffsetX = dx > 0 ? 5 : -(ctx.measureText(label).width + 5);
+                    } else { 
+                        textOffsetX = dx > 0 ? 5 : -(ctx.measureText(label).width + 5); 
+                        textOffsetY = dy > 0 ? 15 : -5;
+                    }
+                    ctx.textAlign = dx >= 0 ? 'left' : 'right'; 
+                    ctx.textBaseline = dy >= 0 ? 'top' : 'bottom';
+
+                    ctx.fillText(label, textOffsetX, textOffsetY); 
+                    ctx.restore();
+                }
+            }
+            
+            let xAtHmax = 0; 
+
+            function update() {
+                if (!isRunning || isPaused) return;
+
+                t += dt;
+                x = v0x * t;
+                y = v0y * t - 0.5 * g * t * t;
+                
+                if (showPathCheckbox.checked) {
+                    pathPoints.push({ x: x, y: y });
+                }
+
+                draw();
+
+                if (y < 0) {
+                    y = 0; 
+                    if (g > 0 && v0y >= 0) { 
+                        const t_exact_impact = (2 * v0y) / g;
+                        if (t_exact_impact >= 0 && Math.abs(t_exact_impact - t) < dt * 2) { 
+                            t = t_exact_impact;
+                            x = v0x * t;
+                        }
+                    } 
+
+
+                    if (showPathCheckbox.checked && pathPoints.length > 0) { 
+                        pathPoints[pathPoints.length-1] = {x:x, y:y}; 
+                    }
+                    draw(); 
+                    isRunning = false;
+                    isPaused = false; 
+                    startButton.innerHTML = '<i class="fas fa-play"></i> Iniciar';
+                    startButton.disabled = false;
+                    pauseButton.disabled = true;
+                    console.log("Simulación finalizada: Proyectil tocó el suelo.");
+                    updateInfoDisplay(true); 
+                    return;
+                }
+
+                animationFrameId = requestAnimationFrame(update);
+            }
+            
+            function updateInfoDisplay(isFinal = false) {
+                const Hmax_calc_info = (v0y * v0y) / (2 * g); 
+                const Rmax_calc_info = (v0 * v0 * Math.sin(2 * angleRadians)) / g; 
+                const Ttotal_calc_info = (g > 0 && v0y >=0) ? (2 * v0y) / g : NaN; 
+
+                maxHeightDisplay.textContent = (isFinite(Hmax_calc_info) && Hmax_calc_info >= 0) ? Hmax_calc_info.toFixed(2) : "-";
+                maxRangeDisplay.textContent = (isFinite(Rmax_calc_info) && Rmax_calc_info >= 0) ? Rmax_calc_info.toFixed(2) : "-";
+                
+                if (showTotalTimeCheckbox.checked || isFinal) {
+                    if (isFinal) { 
+                         totalTimeDisplay.textContent = t.toFixed(2);
+                    } else { 
+                         totalTimeDisplay.textContent = (isFinite(Ttotal_calc_info) && Ttotal_calc_info >=0) ? Ttotal_calc_info.toFixed(2) : "-";
+                    }
+                } else if (!isRunning && !isFinal && t === 0) { 
+                    totalTimeDisplay.textContent = (isFinite(Ttotal_calc_info) && Ttotal_calc_info >= 0) ? Ttotal_calc_info.toFixed(2) : "-";
+                }
+                 else {
+                    totalTimeDisplay.textContent = "-";
+                }
+
+                currentXDisplay.textContent = x.toFixed(2);
+                currentYDisplay.textContent = y.toFixed(2);
+                currentTimeDisplay.textContent = t.toFixed(2);
+            }
+
+            initialVelocitySlider.addEventListener('input', (e) => {
+                v0 = parseFloat(e.target.value);
+                velocityValueSpan.textContent = v0;
+                if (!isRunning) resetSimulation(); 
+            });
+
+            launchAngleSlider.addEventListener('input', (e) => {
+                angleDegrees = parseFloat(e.target.value);
+                angleValueSpan.textContent = angleDegrees;
+                if (!isRunning) resetSimulation(); 
+            });
+            
+            gravitySlider.addEventListener('input', (e) => {
+                g = parseFloat(e.target.value);
+                gravityValueSpan.textContent = g;
+                if(!isRunning) resetSimulation();
+            });
+
+            startButton.addEventListener('click', () => {
+                if (!isRunning) { 
+                    if (y <= 0 && t > 0 && !isPaused) { 
+                        resetSimulation(); 
+                    } else {
+                        resetSimulationParameters(); 
+                    }
+                    isRunning = true;
+                    isPaused = false;
+                    if (pathPoints.length === 0 || (x === 0 && y === 0 && t === 0) ) { 
+                       pathPoints = [{x:0, y:0}]; 
+                    }
+                    animationFrameId = requestAnimationFrame(update);
+                    startButton.innerHTML = '<i class="fas fa-play"></i> En Curso...';
+                    startButton.disabled = true;
+                    pauseButton.disabled = false;
+                    pauseButton.innerHTML = '<i class="fas fa-pause"></i> Pausar'; 
+                    console.log("Simulación iniciada/reanudada.");
+                } else if (isPaused) { 
+                    isPaused = false;
+                    animationFrameId = requestAnimationFrame(update);
+                    startButton.innerHTML = '<i class="fas fa-play"></i> En Curso...';
+                    startButton.disabled = true;
+                    pauseButton.disabled = false;
+                    pauseButton.innerHTML = '<i class="fas fa-pause"></i> Pausar';
+                    console.log("Simulación reanudada desde pausa.");
+                }
+            });
+
+            pauseButton.addEventListener('click', () => {
+                if (isRunning && !isPaused) {
+                    isPaused = true;
+                    cancelAnimationFrame(animationFrameId);
+                    pauseButton.innerHTML = '<i class="fas fa-pause"></i> Pausado';
+                    startButton.innerHTML = '<i class="fas fa-play"></i> Reanudar';
+                    startButton.disabled = false;
+                    console.log("Simulación pausada.");
+                }
+            });
+
+            resetButton.addEventListener('click', () => {
+                resetSimulation();
+                console.log("Simulación reiniciada.");
+            });
+            
+            [showCoordsCheckbox, showCoordLinesCheckbox, showGridCheckbox, showVelocityVectorsCheckbox, showResultantVectorCheckbox, showMaxHeightCheckbox, showMaxRangeCheckbox, showTotalTimeCheckbox, showPathCheckbox].forEach(checkbox => {
+                checkbox.addEventListener('change', () => {
+                    draw(); // Siempre redibujar cuando cambia un checkbox
+                    updateInfoDisplay(y <= 0 && t > 0 && !isRunning); 
+                });
+            });
+
+            function resetSimulationParameters() {
+                angleRadians = angleDegrees * Math.PI / 180;
+                v0x = v0 * Math.cos(angleRadians);
+                v0y = v0 * Math.sin(angleRadians);
+                if (g > 0 && v0y >= 0) { 
+                    xAtHmax = v0x * (v0y / g); 
+                } else if (g === 0 && v0y > 0) { 
+                    xAtHmax = Infinity; 
+                } else { 
+                    xAtHmax = 0; 
+                }
+            }
+
+            function resetSimulation() {
+                isRunning = false;
+                isPaused = false;
+                if (animationFrameId) { 
+                    cancelAnimationFrame(animationFrameId);
+                    animationFrameId = null; 
+                }
+                
+                t = 0;
+                x = 0;
+                y = 0;
+                pathPoints = []; 
+
+                resetSimulationParameters(); 
+                resizeCanvas(); 
+                
+                startButton.innerHTML = '<i class="fas fa-play"></i> Iniciar';
+                startButton.disabled = false;
+                pauseButton.innerHTML = '<i class="fas fa-pause"></i> Pausar';
+                pauseButton.disabled = true;
+                
+                if (typeof MathJax !== "undefined"){
+                    try { 
+                        MathJax.Hub.Queue(["Typeset",MathJax.Hub]);
+                    } catch (e) {
+                        console.error("Error al procesar MathJax:", e);
+                    }
+                }
+            }
+            resetSimulation(); // Llamada inicial para configurar todo
+        });
+    </script>
+</body>
+</html>
